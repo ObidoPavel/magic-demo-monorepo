@@ -81,6 +81,7 @@ export function HederaSignMethods() {
   const createMagicSigner = async (): Promise<{
     signer: HederaSigner;
     accountId: AccountId;
+    close: () => void;
   }> => {
     const client = createHederaClient();
     const provider = LocalProvider.fromClient(client);
@@ -133,7 +134,7 @@ export function HederaSignMethods() {
       ): Promise<OutputT> => provider.call(request),
     };
 
-    return { signer, accountId };
+    return { signer, accountId, close: () => client.close() };
   };
 
   const handleGetPublicAddress = async (): Promise<string> => {
@@ -184,34 +185,55 @@ export function HederaSignMethods() {
   };
 
   const handleTransferTransaction = async (): Promise<string> => {
-    const { signer, accountId } = await createMagicSigner();
-    const recipient = AccountId.fromString(HEDERA_TESTNET_TREASURY_ACCOUNT_ID);
+    const { signer, accountId, close } = await createMagicSigner();
+    try {
+      const recipient = AccountId.fromString(HEDERA_TESTNET_TREASURY_ACCOUNT_ID);
 
-    const transferTx = new TransferTransaction()
-      .setTransactionId(TransactionId.generate(accountId))
-      .setNodeAccountIds([AccountId.fromString(HEDERA_TESTNET_NODE_ACCOUNT_ID)])
-      .addHbarTransfer(accountId, Hbar.fromTinybars(-HEDERA_TRANSFER_TINYBARS))
-      .addHbarTransfer(recipient, Hbar.fromTinybars(HEDERA_TRANSFER_TINYBARS))
-      .setTransactionMemo("Magic Hedera TransferTransaction demo");
+      const transferTx = new TransferTransaction()
+        .setTransactionId(TransactionId.generate(accountId))
+        .setNodeAccountIds([AccountId.fromString(HEDERA_TESTNET_NODE_ACCOUNT_ID)])
+        .addHbarTransfer(accountId, Hbar.fromTinybars(-HEDERA_TRANSFER_TINYBARS))
+        .addHbarTransfer(recipient, Hbar.fromTinybars(HEDERA_TRANSFER_TINYBARS))
+        .setTransactionMemo("Magic Hedera TransferTransaction demo");
 
-    const frozenTx = transferTx.freeze();
-    const signedTx = await frozenTx.signWithSigner(signer);
-    const response = await signedTx.executeWithSigner(signer);
-    const receipt = await response.getReceiptWithSigner(signer);
+      const frozenTx = transferTx.freeze();
+      const signedTx = await frozenTx.signWithSigner(signer);
+      const response = await signedTx.executeWithSigner(signer);
+      const receipt = await response.getReceiptWithSigner(signer);
 
-    return JSON.stringify(
-      {
-        status: receipt.status.toString(),
-        transactionId: response.transactionId.toString(),
-        fromAccountId: accountId.toString(),
-        toAccountId: recipient.toString(),
-        amountTinybar: HEDERA_TRANSFER_TINYBARS,
-      },
-      null,
-      2
-    );
+      return JSON.stringify(
+        {
+          status: receipt.status.toString(),
+          transactionId: response.transactionId.toString(),
+          fromAccountId: accountId.toString(),
+          toAccountId: recipient.toString(),
+          amountTinybar: HEDERA_TRANSFER_TINYBARS,
+        },
+        null,
+        2
+      );
+    } finally {
+      close();
+    }
   };
 
+  const handleGetHederaBalance = async (): Promise<string> => {
+    const { signer, accountId, close } = await createMagicSigner();
+    try {
+      const balance = await signer.getAccountBalance();
+      return JSON.stringify(
+        {
+          accountId: accountId.toString(),
+          hbars: balance.hbars.toString(),
+          tinybars: balance.hbars.toTinybars().toString(),
+        },
+        null,
+        2
+      );
+    } finally {
+      close();
+    }
+  };
 
   const tabs = [
     {
@@ -234,6 +256,13 @@ export function HederaSignMethods() {
       functionName: "magic.hedera.sign(message)",
       payload: HEDERA_SIGN_MESSAGE,
       handler: handleSignMessage
+    },
+    {
+      value: "get-balance",
+      label: "Get Hedera Balance",
+      functionName: "signer.getAccountBalance()",
+      payload: null,
+      handler: handleGetHederaBalance,
     },
     {
       value: "transfer-transaction",
@@ -261,6 +290,7 @@ export function HederaSignMethods() {
         <TabsContent value="public-address" />
         <TabsContent value="public-key" />
         <TabsContent value="sign-message" />
+        <TabsContent value="get-balance" />
         <TabsContent value="transfer-transaction" />
       </SigningMethodsLayout>
     </div>

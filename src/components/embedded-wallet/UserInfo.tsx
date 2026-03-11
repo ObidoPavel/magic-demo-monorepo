@@ -6,6 +6,8 @@ import { Card } from "../Card";
 import IconProfile from "public/icons/icon-profile.svg";
 import { Button } from "../Button";
 
+const HEDERA_TESTNET_FAUCET_URL = "https://portal.hedera.com/faucet";
+
 export function UserInfo() {
   const { publicAddress, hederaAccountId, userInfo, handleLogout, selectedNetwork } =
     useEmbeddedWallet();
@@ -35,20 +37,37 @@ export function UserInfo() {
           label={selectedNetwork === "hedera" ? "Hedera Account ID" : "Wallet Address"}
         />
 
-        {selectedNetwork === "hedera" && mirrorNodeUrl && (
-          <Button
-            onClick={() =>
-              window.open(
-                mirrorNodeUrl,
-                "_blank",
-                "noopener,noreferrer"
-              )
-            }
-            variant="secondary"
-            fullWidth
-          >
-            Validate on Mirror Node
-          </Button>
+        {selectedNetwork === "hedera" && (
+          <div className="flex flex-col gap-2">
+            {mirrorNodeUrl && (
+              <Button
+                onClick={() =>
+                  window.open(
+                    mirrorNodeUrl,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+                variant="secondary"
+                fullWidth
+              >
+                Validate on Mirror Node
+              </Button>
+            )}
+            <Button
+              onClick={() =>
+                window.open(
+                  HEDERA_TESTNET_FAUCET_URL,
+                  "_blank",
+                  "noopener,noreferrer"
+                )
+              }
+              variant="secondary"
+              fullWidth
+            >
+              Open Testnet Faucet
+            </Button>
+          </div>
         )}
 
         <Button onClick={handleLogout} variant="secondary" fullWidth>
