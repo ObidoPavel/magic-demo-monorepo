@@ -21,6 +21,7 @@ export enum Network {
 
 interface WalletContextType {
   publicAddress: string | null;
+  hederaAccountId: string | null;
   selectedNetwork: Network;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -52,6 +53,47 @@ const pickAddressFromValue = (value: unknown): string | null => {
         return candidate;
       }
     }
+  }
+
+  return null;
+};
+
+const pickHederaAccountIdFromValue = (value: unknown): string | null => {
+  if (typeof value === "string" && /^\d+\.\d+\.\d+$/.test(value.trim())) {
+    return value.trim();
+  }
+
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidates = [obj.accountId, obj.publicAddress, obj.address];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && /^\d+\.\d+\.\d+$/.test(candidate.trim())) {
+        return candidate.trim();
+      }
+    }
+  }
+
+  return null;
+};
+
+const resolveHederaAccountIdFromMirror = async (
+  evmOrAlias: string
+): Promise<string | null> => {
+  try {
+    const response = await fetch(
+      `https://testnet.mirrornode.hedera.com/api/v1/accounts/${evmOrAlias}`
+    );
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = (await response.json()) as { account?: unknown };
+    if (typeof data.account === "string" && /^\d+\.\d+\.\d+$/.test(data.account)) {
+      return data.account;
+    }
+  } catch {
+    // Ignore Mirror Node lookup failures and keep available wallet metadata.
   }
 
   return null;
@@ -91,35 +133,82 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return pickAddressFromValue(wallets[selectedNetwork]);
   };
 
+  const getHederaAccountId = (): string | null => {
+    if (!userInfo?.wallets) return null;
+    const wallets = userInfo.wallets as Record<string, unknown>;
+
+    return (
+      pickHederaAccountIdFromValue(wallets.hedera) ||
+      pickHederaAccountIdFromValue(wallets.ethereum) ||
+      null
+    );
+  };
+
   const fetchAllNetworkAddresses = async () => {
     try {
       const fetchedUserInfo = await MagicService.magic.user.getInfo();
       let enrichedUserInfo = fetchedUserInfo;
 
       // Hedera-only mode can return wallet data without publicAddress in user.getInfo().
-      // Query extension directly and merge address fields for UI rendering.
-      if (
-        selectedNetwork === Network.HEDERA &&
-        !pickAddressFromValue(fetchedUserInfo?.wallets?.hedera) &&
-        !pickAddressFromValue(fetchedUserInfo?.wallets?.ethereum)
-      ) {
+      // Query extension directly and merge Hedera fields for UI rendering.
+      if (selectedNetwork === Network.HEDERA) {
         try {
           const hederaAddressPayload =
             await MagicService.magic.hedera.getPublicAddress();
-          const fallbackAddress = pickAddressFromValue(hederaAddressPayload);
+          const hederaPayload =
+            typeof hederaAddressPayload === "object" && hederaAddressPayload
+              ? (hederaAddressPayload as Record<string, unknown>)
+              : {};
+          const existingWallets = (fetchedUserInfo?.wallets ?? {}) as Record<
+            string,
+            unknown
+          >;
+          const existingHederaWallet =
+            existingWallets.hedera && typeof existingWallets.hedera === "object"
+              ? (existingWallets.hedera as Record<string, unknown>)
+              : {};
 
-          if (fallbackAddress) {
-            enrichedUserInfo = {
-              ...fetchedUserInfo,
-              wallets: {
-                ...(fetchedUserInfo?.wallets ?? {}),
-                hedera: {
-                  ...(fetchedUserInfo?.wallets?.hedera ?? {}),
-                  publicAddress: fallbackAddress,
-                },
+          const fallbackAddress = pickAddressFromValue(hederaAddressPayload);
+          const existingAccountId = pickHederaAccountIdFromValue(existingHederaWallet);
+          const payloadAccountId = pickHederaAccountIdFromValue(hederaPayload);
+          const mirrorResolvedAccountId =
+            !existingAccountId && !payloadAccountId && fallbackAddress
+              ? await resolveHederaAccountIdFromMirror(fallbackAddress)
+              : null;
+
+          enrichedUserInfo = {
+            ...fetchedUserInfo,
+            wallets: {
+              ...existingWallets,
+              hedera: {
+                ...existingHederaWallet,
+                publicAddress:
+                  fallbackAddress ||
+                  (typeof existingHederaWallet.publicAddress === "string"
+                    ? existingHederaWallet.publicAddress
+                    : null),
+                accountId:
+                  payloadAccountId ||
+                  existingAccountId ||
+                  mirrorResolvedAccountId ||
+                  (typeof hederaPayload.accountId === "string"
+                    ? hederaPayload.accountId
+                    : null),
+                address:
+                  typeof hederaPayload.address === "string"
+                    ? hederaPayload.address
+                    : typeof existingHederaWallet.address === "string"
+                    ? existingHederaWallet.address
+                    : null,
+                evmAddress:
+                  typeof hederaPayload.evmAddress === "string"
+                    ? hederaPayload.evmAddress
+                    : typeof existingHederaWallet.evmAddress === "string"
+                    ? existingHederaWallet.evmAddress
+                    : null,
               },
-            };
-          }
+            },
+          };
         } catch (hederaAddressError) {
           logToConsole(
             LogType.WARNING,
@@ -243,6 +332,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const value: WalletContextType = {
     publicAddress: getPublicAddress(),
+    hederaAccountId: getHederaAccountId(),
     selectedNetwork,
     isAuthenticated,
     isLoading,

@@ -322,6 +322,9 @@ export function useEmailOTPModal() {
         });
 
         const didToken = await handle;
+        if (typeof window !== "undefined" && typeof didToken === "string") {
+          localStorage.setItem("magic_last_did_token", didToken);
+        }
         logToConsole(
           LogType.SUCCESS,
           LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,

@@ -72,9 +72,16 @@ export function OAuthAuth({ onSuccess }: OAuthAuthProps) {
         "Initiating OAuth popup login...",
         { showUI: true }
       );
-      await MagicService.magic.oauth2.loginWithPopup({
+      const result = await MagicService.magic.oauth2.loginWithPopup({
         provider,
       });
+      const popupIdToken =
+        result && typeof result === "object"
+          ? (result as { magic?: { idToken?: string } }).magic?.idToken
+          : null;
+      if (typeof window !== "undefined" && typeof popupIdToken === "string") {
+        localStorage.setItem("magic_last_did_token", popupIdToken);
+      }
 
       logToConsole(
         LogType.SUCCESS,

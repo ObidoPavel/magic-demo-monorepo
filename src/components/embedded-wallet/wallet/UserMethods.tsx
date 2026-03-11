@@ -35,6 +35,114 @@ export function UserMethods() {
         disabled: isWalletLogin,
       };
 
+  const persistDidToken = (token: unknown) => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (typeof token === "string" && token.length > 0) {
+      localStorage.setItem("magic_last_did_token", token);
+    }
+  };
+
+  const getPersistedDidToken = (): string | null => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    return localStorage.getItem("magic_last_did_token");
+  };
+
+  const resolveIdTokenWithFallback = async (
+    primary: () => Promise<string>,
+    secondary: () => Promise<string>
+  ): Promise<string> => {
+    const sleep = (ms: number) =>
+      new Promise((resolve) => {
+        setTimeout(resolve, ms);
+      });
+
+    const warmupHederaWallet = async () => {
+      // Some Hedera sessions need wallet hydration before User module token calls succeed.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        await MagicService.magic.user.getInfo();
+        await MagicService.magic.hedera.getPublicAddress();
+        await MagicService.magic.hedera.getPublicKey();
+        await sleep(350 * (attempt + 1));
+      }
+    };
+
+    try {
+      const token = await primary();
+      persistDidToken(token);
+      return token;
+    } catch (primaryError) {
+      const primaryMessage =
+        primaryError instanceof Error
+          ? primaryError.message
+          : String(primaryError);
+      if (!primaryMessage.includes("Failed to get wallet")) {
+        throw primaryError;
+      }
+
+      try {
+        await warmupHederaWallet();
+        const token = await secondary();
+        persistDidToken(token);
+        return token;
+      } catch (secondaryError) {
+        const secondaryMessage =
+          secondaryError instanceof Error
+            ? secondaryError.message
+            : String(secondaryError);
+        const cachedToken = getPersistedDidToken();
+
+        if (cachedToken) {
+          return JSON.stringify(
+            {
+              source: "cached",
+              warning:
+                "Returned last successful DID token because wallet lookup failed in current session.",
+              token: cachedToken,
+              errors: {
+                primary: primaryMessage,
+                secondary: secondaryMessage,
+              },
+            },
+            null,
+            2
+          );
+        }
+
+        return JSON.stringify(
+          {
+            source: "unavailable",
+            warning:
+              "ID token could not be generated because wallet resolution failed after Hedera wallet warmup retries in this session.",
+            errors: {
+              primary: primaryMessage,
+              secondary: secondaryMessage,
+            },
+          },
+          null,
+          2
+        );
+      }
+    }
+  };
+
+  const handleGetIdToken = async () => {
+    return resolveIdTokenWithFallback(
+      () => MagicService.magic.user.getIdToken(),
+      () => MagicService.magic.user.generateIdToken()
+    );
+  };
+
+  const handleGenerateIdToken = async () => {
+    return resolveIdTokenWithFallback(
+      () => MagicService.magic.user.generateIdToken(),
+      () => MagicService.magic.user.getIdToken()
+    );
+  };
+
   const tabs = [
     {
       value: "is-logged-in",
@@ -62,7 +170,7 @@ export function UserMethods() {
       label: "Get ID Token",
       functionName: "magic.user.getIdToken()",
       payload: null,
-      handler: () => MagicService.magic.user.getIdToken(),
+      handler: handleGetIdToken,
       disabled: isWalletLogin,
     },
     {
@@ -70,7 +178,7 @@ export function UserMethods() {
       label: "Generate ID Token",
       functionName: "magic.user.generateIdToken()",
       payload: null,
-      handler: () => MagicService.magic.user.generateIdToken(),
+      handler: handleGenerateIdToken,
       disabled: isWalletLogin,
     },
     {
@@ -110,22 +218,6 @@ export function UserMethods() {
     //     ),
     // },
     revealPrivateKeyTab,
-    {
-      value: "enable-mfa",
-      label: "Enable MFA",
-      functionName: "magic.user.enableMFA({showUI: true})",
-      payload: null,
-      handler: () => MagicService.magic.user.enableMFA({ showUI: true }),
-      disabled: isWalletLogin,
-    },
-    {
-      value: "disable-mfa",
-      label: "Disable MFA",
-      functionName: "magic.user.disableMFA({showUI: true})",
-      payload: null,
-      handler: () => MagicService.magic.user.disableMFA({ showUI: true }),
-      disabled: isWalletLogin,
-    },
   ];
 
   return (

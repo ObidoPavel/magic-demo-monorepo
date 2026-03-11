@@ -5,11 +5,13 @@ import iconCopy from "public/icons/icon-copy.svg";
 interface WalletAddressProps {
   address: string | null;
   className?: string;
+  label?: string;
 }
 
 export const WalletAddress = ({
   address,
   className = "",
+  label = "Wallet Address",
 }: WalletAddressProps) => {
   const handleCopy = () => {
     if (address) {
@@ -20,7 +22,7 @@ export const WalletAddress = ({
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium text-secondary tracking-wide">
-        Wallet Address
+        {label}
       </label>
       <div
         className={`flex items-center gap-2 p-4 bg-background rounded-xl border border-slate-4 ${className}`}

@@ -21,6 +21,9 @@ export default function CallbackPage() {
     MagicService.magic.oauth2
       .getRedirectResult()
       .then((result: OAuthRedirectResult) => {
+        if (typeof window !== "undefined" && result?.magic?.idToken) {
+          localStorage.setItem("magic_last_did_token", result.magic.idToken);
+        }
         logToConsole(
           LogType.SUCCESS,
           LogMethod.MAGIC_OAUTH_LOGIN_WITH_REDIRECT,
