@@ -33,10 +33,32 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
+const pickAddressFromValue = (value: unknown): string | null => {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const candidates = [
+      obj.publicAddress,
+      obj.address,
+      obj.evmAddress,
+      obj.accountId,
+    ];
+
+    for (const candidate of candidates) {
+      if (typeof candidate === "string" && candidate.trim().length > 0) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+};
+
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [selectedNetwork, setSelectedNetwork] = useState<Network>(
-    Network.HEDERA
-  );
+  const [selectedNetwork, setSelectedNetwork] = useState<Network>(Network.HEDERA);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userInfo, setUserInfo] = useState<any | null>(null);
@@ -46,6 +68,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   // Helper function to get public address from userInfo based on selected network
   const getPublicAddress = (): string | null => {
     if (!userInfo?.wallets) return null;
+    const wallets = userInfo.wallets as Record<string, unknown>;
 
     // EVM networks (polygon, ethereum, optimism) all use the ethereum wallet
     if (
@@ -53,30 +76,74 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         selectedNetwork
       )
     ) {
-      return userInfo.wallets.ethereum?.publicAddress || null;
+      return pickAddressFromValue(wallets.ethereum);
     }
 
-    // Other networks use their own wallet
-    return userInfo.wallets[selectedNetwork]?.publicAddress || null;
+    if (selectedNetwork === Network.HEDERA) {
+      return (
+        pickAddressFromValue(wallets.hedera) ||
+        pickAddressFromValue(wallets.ethereum) ||
+        null
+      );
+    }
+
+    // Other networks use their own wallet.
+    return pickAddressFromValue(wallets[selectedNetwork]);
   };
 
   const fetchAllNetworkAddresses = async () => {
     try {
       const fetchedUserInfo = await MagicService.magic.user.getInfo();
+      let enrichedUserInfo = fetchedUserInfo;
+
+      // Hedera-only mode can return wallet data without publicAddress in user.getInfo().
+      // Query extension directly and merge address fields for UI rendering.
+      if (
+        selectedNetwork === Network.HEDERA &&
+        !pickAddressFromValue(fetchedUserInfo?.wallets?.hedera) &&
+        !pickAddressFromValue(fetchedUserInfo?.wallets?.ethereum)
+      ) {
+        try {
+          const hederaAddressPayload =
+            await MagicService.magic.hedera.getPublicAddress();
+          const fallbackAddress = pickAddressFromValue(hederaAddressPayload);
+
+          if (fallbackAddress) {
+            enrichedUserInfo = {
+              ...fetchedUserInfo,
+              wallets: {
+                ...(fetchedUserInfo?.wallets ?? {}),
+                hedera: {
+                  ...(fetchedUserInfo?.wallets?.hedera ?? {}),
+                  publicAddress: fallbackAddress,
+                },
+              },
+            };
+          }
+        } catch (hederaAddressError) {
+          logToConsole(
+            LogType.WARNING,
+            LogMethod.MAGIC_USER_GET_INFO,
+            "Unable to resolve Hedera address from hedera extension fallback",
+            hederaAddressError
+          );
+        }
+      }
+
       logToConsole(
         LogType.INFO,
         LogMethod.MAGIC_USER_GET_INFO,
         "User info fetched",
-        fetchedUserInfo
+        enrichedUserInfo
       );
 
       // Store user info for other components to use
-      setUserInfo(fetchedUserInfo);
+      setUserInfo(enrichedUserInfo);
       logToConsole(
         LogType.SUCCESS,
         LogMethod.MAGIC_USER_GET_INFO,
         "User info and wallets fetched successfully",
-        fetchedUserInfo
+        enrichedUserInfo
       );
     } catch (error) {
       logToConsole(

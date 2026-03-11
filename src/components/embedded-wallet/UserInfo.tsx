@@ -7,7 +7,12 @@ import IconProfile from "public/icons/icon-profile.svg";
 import { Button } from "../Button";
 
 export function UserInfo() {
-  const { publicAddress, userInfo, handleLogout } = useEmbeddedWallet();
+  const { publicAddress, userInfo, handleLogout, selectedNetwork } =
+    useEmbeddedWallet();
+  const networkLabel =
+    selectedNetwork === "hedera"
+      ? "Hedera Testnet"
+      : selectedNetwork[0].toUpperCase() + selectedNetwork.slice(1);
 
   return (
     <Card icon={IconProfile} title={userInfo?.email} className="mb-10">
@@ -16,7 +21,7 @@ export function UserInfo() {
           <p className="text-sm font-medium text-secondary tracking-wide">
             Current network
           </p>
-          <p className="mt-1 text-lg text-white">Hedera Testnet</p>
+          <p className="mt-1 text-lg text-white">{networkLabel}</p>
         </div>
 
         <WalletAddress address={publicAddress} />

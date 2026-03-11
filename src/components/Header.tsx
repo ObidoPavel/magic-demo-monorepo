@@ -3,9 +3,7 @@
 import logoMagic from "public/logos/logo-magic.svg";
 import Image from "next/image";
 import { Button } from "./Button";
-import logoGithub from "public/logos/logo-github.svg";
 import iconDoc from "public/icons/icon-doc.svg";
-import iconExpress from "public/icons/icon-cube.svg";
 import iconEmbedded from "public/icons/icon-wallet.svg";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -63,7 +61,7 @@ export const Header = () => {
         }}
       />
       <a href="https://magic.link" target="_blank" className="flex-shrink-0">
-        <Image src={logoMagic} alt="Magic" width={199} height={40} />
+        <Image src={logoMagic} alt="Magic" width={199} height={40} loading="eager" />
       </a>
 
       <div className="flex flex-col md:flex-row items-center gap-4 z-10">
@@ -85,36 +83,6 @@ export const Header = () => {
             </Button>
           </Link>
         )}
-        {isEmbeddedWalletRoute && (
-          <Link
-            href="/server-wallet"
-            className="flex-shrink-0 w-full md:w-auto"
-          >
-            <Button variant="secondary" onClick={() => {}} fullWidth glow>
-              <div className="flex items-center gap-2">
-                <Image
-                  src={iconExpress}
-                  alt="Server Wallet"
-                  width={24}
-                  height={24}
-                />
-                Try Server Wallet
-              </div>
-            </Button>
-          </Link>
-        )}
-        <a
-          href="https://github.com/magiclabs/magic-demo-monorepo"
-          target="_blank"
-          className="flex-shrink-0 w-full md:w-auto"
-        >
-          <Button variant="secondary" onClick={() => {}} fullWidth glow>
-            <div className="flex items-center gap-2">
-              <Image src={logoGithub} alt="GitHub" width={24} height={24} />
-              View GitHub
-            </div>
-          </Button>
-        </a>
         <a
           href={docsConfig.url}
           target="_blank"

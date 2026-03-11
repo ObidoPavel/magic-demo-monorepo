@@ -13,6 +13,10 @@ import { Network } from "@/contexts/EmbeddedWalletContext";
 
 export default function WalletPage() {
   const { selectedNetwork, userInfo, checkAuthStatus } = useEmbeddedWallet();
+  const networkLabel =
+    selectedNetwork === Network.HEDERA
+      ? "Hedera Testnet"
+      : selectedNetwork[0].toUpperCase() + selectedNetwork.slice(1);
 
   useEffect(() => {
     if (!userInfo) {
@@ -38,7 +42,7 @@ export default function WalletPage() {
               <p className="text-sm font-medium text-secondary tracking-wide">
                 Current network
               </p>
-              <p className="mt-1 text-lg text-white">Hedera Testnet</p>
+              <p className="mt-1 text-lg text-white">{networkLabel}</p>
               <p className="mt-2 text-sm text-muted-foreground">
                 HBAR funding note: transaction demos require a small testnet HBAR
                 balance in your wallet for network fees.

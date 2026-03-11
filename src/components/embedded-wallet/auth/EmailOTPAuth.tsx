@@ -50,46 +50,6 @@ export function EmailOTPAuth({ onSuccess }: EmailOTPAuthProps) {
     onSuccess?.();
   };
 
-  const handleEmailOTPLogin = async () => {
-    if (!email) {
-      logToConsole(
-        LogType.ERROR,
-        LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
-        "Please enter an email address"
-      );
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      logToConsole(
-        LogType.INFO,
-        LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
-        "Sending OTP via regular Magic UI...",
-        { email, showUI: true }
-      );
-      await MagicService.magic.auth.loginWithEmailOTP({ email });
-      logToConsole(
-        LogType.SUCCESS,
-        LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
-        `OTP sent successfully to ${email}`,
-        { email }
-      );
-      handleSuccess();
-    } catch (error: unknown) {
-      const errorMsg = (error as Error).message || "Failed to send OTP";
-      logToConsole(
-        LogType.ERROR,
-        LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
-        errorMsg,
-        { email, error }
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleWhitelabelEmailOTPLogin = async () => {
     setIsLoading(true);
     try {
@@ -118,22 +78,7 @@ export function EmailOTPAuth({ onSuccess }: EmailOTPAuthProps) {
           disabled={isLoading}
         />
 
-        {/* Email OTP Buttons - Horizontal Layout */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full my-2">
-          {/* Regular Email OTP */}
-          <Button
-            onClick={handleEmailOTPLogin}
-            variant="secondary"
-            fullWidth
-            className="flex flex-col gap-2"
-          >
-            <span>Regular OTP</span>
-            <span className="font-jetbrains font-normal text-sm text-secondary">
-              showUI: true
-            </span>
-          </Button>
-
-          {/* Whitelabel Email OTP */}
+        <div className="w-full my-2">
           <Button
             onClick={handleWhitelabelEmailOTPLogin}
             variant="secondary"

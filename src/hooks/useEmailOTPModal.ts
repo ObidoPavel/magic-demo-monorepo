@@ -18,6 +18,49 @@ interface ModalState {
   onCancel?: () => void;
 }
 
+const normalizeAuthError = (
+  error: unknown
+): { message: string; details?: Record<string, unknown> } => {
+  if (error instanceof Error) {
+    const magicLikeError = error as Error & {
+      code?: unknown;
+      data?: unknown;
+      cause?: unknown;
+    };
+    return {
+      message: error.message || "Unknown authentication error",
+      details: {
+        name: error.name,
+        code: magicLikeError.code,
+        data: magicLikeError.data,
+        cause: magicLikeError.cause,
+        stack: error.stack,
+      },
+    };
+  }
+
+  if (typeof error === "string") {
+    return { message: error };
+  }
+
+  if (error && typeof error === "object") {
+    try {
+      const parsed = error as Record<string, unknown>;
+      return {
+        message:
+          typeof parsed.message === "string"
+            ? parsed.message
+            : "Unknown authentication error",
+        details: parsed,
+      };
+    } catch {
+      return { message: String(error) };
+    }
+  }
+
+  return { message: "Unknown authentication error" };
+};
+
 export function useEmailOTPModal() {
   const [inputValue, setInputValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | undefined>(
@@ -60,6 +103,13 @@ export function useEmailOTPModal() {
       }
 
       try {
+        let didComplete = false;
+        const finalizeSuccess = () => {
+          if (didComplete) return;
+          didComplete = true;
+          onSuccess();
+        };
+
         logToConsole(
           LogType.INFO,
           LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
@@ -235,17 +285,23 @@ export function useEmailOTPModal() {
         });
 
         handle.on("error", (error: unknown) => {
-          const errorMsg = `Error: ${error}`;
+          const { message, details } = normalizeAuthError(error);
           setIsLoading(false);
+          logToConsole(
+            LogType.ERROR,
+            LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
+            message,
+            { email, error, details }
+          );
 
           openModal({
             type: "error",
             title: "Authentication Error",
-            message: errorMsg,
+            message: `Error: ${message}`,
             onSubmit: () => closeModal(),
             onCancel: () => closeModal(),
           });
-          onError?.(errorMsg);
+          onError?.(message);
         });
 
         handle.on("done", () => {
@@ -256,11 +312,11 @@ export function useEmailOTPModal() {
             message: "Authentication successful. Redirecting to wallet...",
             onSubmit: () => {
               closeModal();
-              onSuccess();
+              finalizeSuccess();
             },
             onCancel: () => {
               closeModal();
-              onSuccess();
+              finalizeSuccess();
             },
           });
         });
@@ -273,23 +329,23 @@ export function useEmailOTPModal() {
           { email, didToken }
         );
 
-        onSuccess();
+        finalizeSuccess();
       } catch (error: unknown) {
-        const errorMsg = (error as Error).message || "Failed to send OTP";
+        const { message, details } = normalizeAuthError(error);
         logToConsole(
           LogType.ERROR,
           LogMethod.MAGIC_AUTH_LOGIN_WITH_EMAIL_OTP,
-          errorMsg,
-          { email, error }
+          message,
+          { email, error, details }
         );
         openModal({
           type: "error",
           title: "Login Failed",
-          message: errorMsg,
+          message,
           onSubmit: () => closeModal(),
           onCancel: () => closeModal(),
         });
-        onError?.(errorMsg);
+        onError?.(message);
       }
     },
     [logToConsole, openModal, closeModal]

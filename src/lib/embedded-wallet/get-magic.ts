@@ -1,21 +1,6 @@
 import { Magic } from "magic-sdk";
-import { OAuthExtension } from "@magic-ext/oauth2";
-import { SolanaExtension } from "@magic-ext/solana";
 import { HederaExtension } from "@magic-ext/hedera";
-import { EVMExtension } from "@magic-ext/evm";
 import { ethers } from "ethers";
-import { WalletKitExtension } from "@magic-ext/wallet-kit";
-
-const customPolygonOptions = {
-  rpcUrl: "https://polygon-rpc.com/", // Polygon RPC URL
-  chainId: 137, // Polygon chain id
-  default: true, // Set as default network
-};
-
-const customOptimismOptions = {
-  rpcUrl: "https://mainnet.optimism.io",
-  chainId: 10,
-};
 
 export class MagicService {
   private static _magic: any = null;
@@ -27,15 +12,9 @@ export class MagicService {
         process.env.NEXT_PUBLIC_MAGIC_EMBEDDED_WALLET_KEY ?? "",
         {
           extensions: [
-            new OAuthExtension(),
-            new SolanaExtension({
-              rpcUrl: "https://api.devnet.solana.com",
-            }),
             new HederaExtension({
               network: "testnet",
             }),
-            new EVMExtension([customPolygonOptions, customOptimismOptions]),
-            new WalletKitExtension(),
           ],
         }
       );
