@@ -1,0 +1,56 @@
+---
+description: Node.js + TypeScript backend conventions and best practices.
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "**/package.json"
+alwaysApply: false
+---
+
+# Node + TypeScript Backend Rule
+
+Use this rule for backend APIs, workers, and domain logic.
+
+## TypeScript Strictness
+
+- Prefer `strict`-friendly patterns; never silence errors without explanation.
+- Avoid `any`; prefer `unknown` + narrowing.
+- Use branded/discriminated types for domain states and IDs.
+- Export reusable DTO and domain types from dedicated modules.
+- Use `satisfies` for object literals that must match interfaces.
+
+## Backend Structure
+
+- Keep transport concerns (HTTP context, status codes) out of business logic.
+- Place use-case logic in services; keep controllers thin.
+- Use repository/gateway interfaces to decouple storage/integrations.
+- Inject dependencies explicitly to simplify testing/mocking.
+
+## Data and Validation
+
+- Validate and parse all inbound data using schemas (e.g. Zod/Valibot/Joi).
+- Normalize outbound responses to stable contract shapes.
+- Enforce pagination and filtering limits on list endpoints.
+- Prefer explicit nullability over ambiguous optional fields.
+
+## Error Handling
+
+- Define typed domain/application errors with stable error codes.
+- Map domain errors to transport-layer status codes in one place.
+- Never expose stack traces or internals to external clients.
+- Ensure unhandled rejection and uncaught exception hooks are configured safely.
+
+## Async and Concurrency
+
+- Use `await` consistently; avoid orphaned promises.
+- Use `Promise.all` only for truly independent operations.
+- Add concurrency limits for fan-out workloads.
+- Use abort signals/timeouts for external calls.
+
+## Performance and Runtime
+
+- Cache read-heavy stable data where appropriate.
+- Avoid blocking CPU work on the event loop; offload if needed.
+- Stream large payloads when possible instead of buffering.
+- Reuse clients/connections; do not recreate per request.
+

@@ -34,6 +34,17 @@ export default function WalletPage() {
 
           {/* Right Side - Signing Methods */}
           <div className="w-full lg:w-2/3 flex flex-col gap-18">
+            <div className="rounded-xl border border-slate-4 bg-background p-4">
+              <p className="text-sm font-medium text-secondary tracking-wide">
+                Current network
+              </p>
+              <p className="mt-1 text-lg text-white">Hedera Testnet</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                HBAR funding note: transaction demos require a small testnet HBAR
+                balance in your wallet for network fees.
+              </p>
+            </div>
+
             {selectedNetwork === Network.HEDERA ? (
               <HederaSignMethods />
             ) : selectedNetwork === Network.SOLANA ? (

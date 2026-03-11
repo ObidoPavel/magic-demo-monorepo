@@ -35,7 +35,7 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [selectedNetwork, setSelectedNetwork] = useState<Network>(
-    Network.ETHEREUM
+    Network.HEDERA
   );
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -127,35 +127,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   // Check if user is already authenticated on component mount
   useEffect(() => {
-    const savedNetwork = localStorage.getItem(
-      "magic_selectedNetwork"
-    ) as Network | null;
-    if (
-      savedNetwork &&
-      [
-        Network.POLYGON,
-        Network.ETHEREUM,
-        Network.OPTIMISM,
-        Network.HEDERA,
-        Network.SOLANA,
-      ].includes(savedNetwork)
-    ) {
-      setSelectedNetwork(savedNetwork);
-    }
+    // POC behavior: force Hedera regardless of previous localStorage selection.
+    setSelectedNetwork(Network.HEDERA);
     checkAuthStatus();
   }, []);
 
   const handleNetworkChange = (network: Network) => {
-    setSelectedNetwork(network);
-
-    // Persist network selection to localStorage
-    localStorage.setItem("magic_selectedNetwork", network);
+    const nextNetwork = network === Network.HEDERA ? network : Network.HEDERA;
+    setSelectedNetwork(nextNetwork);
 
     // Log the network change
     logToConsole(
       LogType.SUCCESS,
       LogMethod.MAGIC_USER_GET_INFO,
-      `Network changed to: ${network}`
+      `Network changed to: ${nextNetwork}`
     );
   };
 

@@ -1,52 +1,23 @@
 "use client";
 
-import { Network, useEmbeddedWallet } from "@/contexts/EmbeddedWalletContext";
-import { Dropdown } from "@/components/Dropdown";
+import { useEmbeddedWallet } from "@/contexts/EmbeddedWalletContext";
 import { WalletAddress } from "@/components/WalletAddress";
 import { Card } from "../Card";
 import IconProfile from "public/icons/icon-profile.svg";
 import { Button } from "../Button";
-import { useEffect, useState } from "react";
 
 export function UserInfo() {
-  const {
-    publicAddress,
-    selectedNetwork,
-    handleNetworkChange,
-    userInfo,
-    handleLogout,
-  } = useEmbeddedWallet();
-
-  const [isWalletLogin, setIsWalletLogin] = useState(false);
-
-  useEffect(() => {
-    setIsWalletLogin(
-      localStorage.getItem("magic_widget_login_method") === "wallet"
-    );
-  }, []);
-
-  const allNetworks = [
-    { value: "ethereum", label: "Ethereum" },
-    { value: "polygon", label: "Polygon" },
-    { value: "optimism", label: "Optimism" },
-    { value: "hedera", label: "Hedera" },
-    { value: "solana", label: "Solana" },
-  ];
-
-  const networks = isWalletLogin
-    ? allNetworks.filter((n) =>
-        ["ethereum", "polygon", "optimism"].includes(n.value)
-      )
-    : allNetworks;
+  const { publicAddress, userInfo, handleLogout } = useEmbeddedWallet();
 
   return (
     <Card icon={IconProfile} title={userInfo?.email} className="mb-10">
       <div className="flex flex-col gap-6">
-        <Dropdown
-          options={networks}
-          selectedValue={selectedNetwork}
-          onSelect={(network) => handleNetworkChange(network as Network)}
-        />
+        <div className="rounded-xl border border-slate-4 bg-background p-4">
+          <p className="text-sm font-medium text-secondary tracking-wide">
+            Current network
+          </p>
+          <p className="mt-1 text-lg text-white">Hedera Testnet</p>
+        </div>
 
         <WalletAddress address={publicAddress} />
 

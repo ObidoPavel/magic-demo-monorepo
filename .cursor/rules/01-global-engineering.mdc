@@ -1,0 +1,46 @@
+---
+description: Global engineering standards for all code changes.
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+# Global Engineering Rule
+
+Apply these standards to every task, regardless of language or layer.
+
+## Design and Scope
+
+- Implement the smallest change that fully solves the requested problem.
+- Keep responsibilities separated and avoid cross-layer leakage.
+- Prefer composable, testable units over monolithic functions.
+- Keep public APIs stable unless a breaking change is required.
+
+## Readability
+
+- Choose clear names that explain intent.
+- Keep functions focused on one responsibility.
+- Avoid deeply nested conditionals; use guard clauses.
+- Add comments only to capture intent, invariants, or non-obvious tradeoffs.
+
+## Safety and Robustness
+
+- Validate untrusted inputs at system boundaries.
+- Handle error paths explicitly and return actionable messages.
+- Avoid hidden side effects and global mutable state.
+- Ensure retries and timeouts for unstable external interactions.
+
+## Operational Excellence
+
+- Keep logs structured and useful for production debugging.
+- Emit meaningful metrics around latency, failures, and throughput.
+- Avoid expensive operations in hot paths.
+- Favor idempotent behavior for retryable operations.
+
+## Delivery Quality
+
+- Maintain passing lint/type/test checks.
+- Add or update tests for behavior changes and bug fixes.
+- Keep commits and PRs focused, with concise rationale.
+- Remove dead code and stale TODOs in touched areas.
+

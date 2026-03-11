@@ -1,0 +1,51 @@
+---
+description: Testing standards for Vitest and Jest in Node/TypeScript projects.
+globs:
+  - "**/*.{test,spec}.{ts,tsx,js,jsx}"
+  - "**/vitest.config.*"
+  - "**/jest.config.*"
+alwaysApply: false
+---
+
+# Testing Rule (Vitest/Jest)
+
+## Test Strategy
+
+- Prefer fast unit tests for core business logic.
+- Add integration tests at system boundaries (DB, message bus, external APIs).
+- Add contract tests for request/response schemas and error envelopes.
+- Cover success, failure, and edge-case behavior.
+
+## Test Quality
+
+- One behavior per test; use clear Arrange/Act/Assert structure.
+- Use descriptive test names that explain expected behavior.
+- Avoid brittle assertions tied to implementation details.
+- Use deterministic data and fixed clocks/random seeds.
+
+## Mocks and Fakes
+
+- Mock only external boundaries; avoid mocking the unit under test.
+- Prefer lightweight fakes/stubs over heavy global mocks.
+- Reset mock state between tests.
+- Keep mock behavior realistic for critical paths.
+
+## Async and Time
+
+- Always await async operations and assertions.
+- Use fake timers only when needed and restore after each test.
+- Validate timeout/retry paths explicitly when they affect behavior.
+
+## Coverage Expectations
+
+- Treat coverage as a signal, not the goal.
+- Ensure changed code paths are tested before merge.
+- Add regression tests for every fixed bug.
+- Maintain high confidence in auth, billing, and data-mutation paths.
+
+## Tooling Notes
+
+- Vitest preferred for modern TS ESM workflows unless project dictates Jest.
+- Keep setup files minimal and explicit.
+- Avoid shared mutable global fixtures across test files.
+

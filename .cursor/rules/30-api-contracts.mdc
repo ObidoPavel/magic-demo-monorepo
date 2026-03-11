@@ -1,0 +1,42 @@
+---
+description: API contract stability, versioning, and compatibility guidance.
+globs:
+  - "**/*.{controller,route,router,handler}.{ts,js}"
+  - "**/*schema*.{ts,js,json,yml,yaml}"
+  - "**/openapi*.{json,yaml,yml}"
+alwaysApply: false
+---
+
+# API Contracts Rule
+
+## Contract-First Mindset
+
+- Treat request/response schemas as product contracts.
+- Keep contract definitions centralized and reusable.
+- Validate both inbound and outbound payloads where feasible.
+
+## Backward Compatibility
+
+- Avoid breaking changes in existing endpoints by default.
+- For unavoidable breaks, version explicitly and document migration.
+- Add deprecation windows and warnings before removing fields/endpoints.
+
+## Request Contracts
+
+- Reject invalid payloads with stable, machine-readable error codes.
+- Enforce strict typing and validation for params, query, headers, and body.
+- Apply safe defaults, bounded limits, and clear required-field semantics.
+
+## Response Contracts
+
+- Keep field names/types stable and predictable.
+- Include explicit pagination metadata for list endpoints.
+- Standardize error envelope format across all endpoints.
+- Never leak internal exceptions, stack traces, or private identifiers.
+
+## Documentation and Change Control
+
+- Update OpenAPI/spec docs whenever contract behavior changes.
+- Add changelog notes for contract additions, deprecations, and removals.
+- Include contract test updates in the same PR as API changes.
+

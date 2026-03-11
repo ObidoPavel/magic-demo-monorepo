@@ -32,7 +32,7 @@ export class MagicService {
               rpcUrl: "https://api.devnet.solana.com",
             }),
             new HederaExtension({
-              network: "mainnet",
+              network: "testnet",
             }),
             new EVMExtension([customPolygonOptions, customOptimismOptions]),
             new WalletKitExtension(),
