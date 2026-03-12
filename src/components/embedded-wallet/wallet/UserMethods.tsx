@@ -136,13 +136,6 @@ export function UserMethods() {
     );
   };
 
-  const handleGenerateIdToken = async () => {
-    return resolveIdTokenWithFallback(
-      () => MagicService.magic.user.generateIdToken(),
-      () => MagicService.magic.user.getIdToken()
-    );
-  };
-
   const tabs = [
     {
       value: "is-logged-in",
@@ -159,26 +152,11 @@ export function UserMethods() {
       handler: () => MagicService.magic.user.getInfo(),
     },
     {
-      value: "logout",
-      label: "Logout",
-      functionName: "magic.user.logout()",
-      payload: null,
-      handler: () => MagicService.magic.user.logout(),
-    },
-    {
       value: "get-id-token",
       label: "Get ID Token",
       functionName: "magic.user.getIdToken()",
       payload: null,
       handler: handleGetIdToken,
-      disabled: isWalletLogin,
-    },
-    {
-      value: "generate-id-token",
-      label: "Generate ID Token",
-      functionName: "magic.user.generateIdToken()",
-      payload: null,
-      handler: handleGenerateIdToken,
       disabled: isWalletLogin,
     },
     {
