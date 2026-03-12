@@ -3,20 +3,45 @@ import { TeeEndpoint } from "@/types/tee-types";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { verifyAuthorizationHeader } from "@/lib/keycloak/verify-token";
 
 // POST /api/tee/wallet/sign/data → forwards to POST /v1/wallet/sign/data
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.idToken) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 }
-      );
+    let upstreamToken: string | null = null;
+
+    const authorizationHeader = req.headers.get("authorization");
+    if (authorizationHeader) {
+      try {
+        const verified = await verifyAuthorizationHeader(authorizationHeader);
+        if (!verified) {
+          return NextResponse.json(
+            { error: "Invalid bearer token." },
+            { status: 401 }
+          );
+        }
+        upstreamToken = verified.token;
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid Keycloak token." },
+          { status: 401 }
+        );
+      }
+    }
+
+    if (!upstreamToken) {
+      const session = await getServerSession(authOptions);
+      if (!session?.idToken) {
+        return NextResponse.json(
+          { error: "Authentication required" },
+          { status: 401 }
+        );
+      }
+      upstreamToken = session.idToken;
     }
 
     const body = await req.text();
-    const res = await express(TeeEndpoint.SIGN_DATA, session.idToken, {
+    const res = await express(TeeEndpoint.SIGN_DATA, upstreamToken, {
       method: "POST",
       body,
     });

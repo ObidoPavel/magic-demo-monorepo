@@ -9,8 +9,25 @@ import { TeeProxyEndpoint } from "../../types/tee-types";
  * @throws Error if response is not ok or contains error information
  */
 export async function expressProxy<T = any>(path: TeeProxyEndpoint, init?: RequestInit): Promise<T> {
+  const headers = new Headers(init?.headers);
+
+  if (typeof window !== "undefined") {
+    try {
+      const rawTokenSet = localStorage.getItem("keycloak_token_set");
+      if (rawTokenSet) {
+        const parsed = JSON.parse(rawTokenSet) as { accessToken?: string };
+        if (parsed.accessToken) {
+          headers.set("Authorization", `Bearer ${parsed.accessToken}`);
+        }
+      }
+    } catch {
+      // Ignore localStorage parsing errors and continue with existing auth mechanisms.
+    }
+  }
+
   const response = await fetch(path, {
     ...init,
+    headers,
     cache: "no-store",
   });
 

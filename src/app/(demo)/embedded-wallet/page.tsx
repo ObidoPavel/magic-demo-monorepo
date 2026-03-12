@@ -5,24 +5,46 @@ import { EmailOTPAuth } from "@/components/embedded-wallet/auth/EmailOTPAuth";
 import { useEmbeddedWallet } from "@/contexts/EmbeddedWalletContext";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/Button";
+import { useKeycloakAuth } from "@/hooks/useKeycloakAuth";
 
 export default function Home() {
   const { isAuthenticated, isLoading, fetchAllNetworkAddresses } =
     useEmbeddedWallet();
+  const { status: keycloakStatus, loginWithKeycloak } = useKeycloakAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push("/embedded-wallet/wallet");
+    if (
+      keycloakStatus === "authenticated" &&
+      !isLoading &&
+      isAuthenticated
+    ) {
+      router.replace("/embedded-wallet/wallet");
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, keycloakStatus, router]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
+  // Show loading state while checking Keycloak and Magic authentication.
+  if (keycloakStatus === "loading" || isLoading) {
     return <LoadingScreen message="Checking authentication..." />;
   }
 
-  // Don't render the auth form if user is authenticated (redirect will happen)
+  if (keycloakStatus !== "authenticated") {
+    return (
+      <div className="flex flex-col items-center gap-12 sm:pt-12">
+        <PageHeader
+          product="Embedded Wallet"
+          title="Authenticate with Keycloak"
+          description="Sign in with Keycloak first, then continue with Magic wallet auth."
+        />
+        <Button onClick={() => void loginWithKeycloak()}>
+          Continue with Keycloak
+        </Button>
+      </div>
+    );
+  }
+
+  // Don't render the auth form if user is authenticated (redirect will happen).
   if (isAuthenticated) {
     return null;
   }

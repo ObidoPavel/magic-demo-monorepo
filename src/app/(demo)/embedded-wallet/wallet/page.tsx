@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { UserInfo } from "@/components/embedded-wallet/UserInfo";
 import { SignMethods } from "@/components/embedded-wallet/wallet/SignMethods";
 import { HederaSignMethods } from "@/components/embedded-wallet/wallet/HederaSignMethods";
@@ -10,19 +11,36 @@ import { UserMethods } from "@/components/embedded-wallet/wallet/UserMethods";
 import { WalletMethods } from "@/components/embedded-wallet/wallet/WalletMethods";
 import { PageHeader } from "@/components/PageHeader";
 import { Network } from "@/contexts/EmbeddedWalletContext";
+import { useKeycloakAuth } from "@/hooks/useKeycloakAuth";
+import { LoadingScreen } from "@/components/LoadingScreen";
 
 export default function WalletPage() {
+  const router = useRouter();
   const { selectedNetwork, userInfo, checkAuthStatus } = useEmbeddedWallet();
+  const { status: keycloakStatus } = useKeycloakAuth();
   const networkLabel =
     selectedNetwork === Network.HEDERA
       ? "Hedera Testnet"
       : selectedNetwork[0].toUpperCase() + selectedNetwork.slice(1);
 
   useEffect(() => {
-    if (!userInfo) {
-      checkAuthStatus();
+    if (keycloakStatus === "unauthenticated") {
+      router.replace("/embedded-wallet");
+      return;
     }
-  }, []);
+
+    if (keycloakStatus !== "authenticated") {
+      return;
+    }
+
+    if (!userInfo) {
+      void checkAuthStatus();
+    }
+  }, [checkAuthStatus, keycloakStatus, router, userInfo]);
+
+  if (keycloakStatus !== "authenticated") {
+    return <LoadingScreen message="Checking Keycloak authentication..." />;
+  }
 
   return (
     <div className="relative min-h-screen">
